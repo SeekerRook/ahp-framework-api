@@ -1,0 +1,17 @@
+version: "0.1"
+
+services:
+  framework-api:
+    build: 
+      context : .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      DATA_URL: http://datafetch-api:8000/
+    networks:
+      - shared
+networks:
+  shared:
+    external: true
+    name: anv-net
