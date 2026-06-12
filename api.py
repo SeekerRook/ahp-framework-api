@@ -65,6 +65,8 @@ def get_supplier_by_type(material_type: str):
         return selection
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/order", summary="Get alternatives for a specific material type")
 
 async def manage_order(order: dict = Body(...)):
