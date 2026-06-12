@@ -40,15 +40,8 @@ def get_alternatives_by_type(material_type: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/select_supplier/{material_type}", summary="Get alternatives for a specific material type")
-def get_supplier_by_type(material_type: str):
-    try:
-        data = fetch_data(material_type)
-        selection = run_ahp(data,[material_type])
-        return selection
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-@app.get("/select_supplier", summary="Get alternatives for a specific material type")
+
+@app.get("/select_supplier", summary="Get supplier selection for all material types")
 def get_supplier_by_type():
     try:
         data = fetch_data()
@@ -57,17 +50,17 @@ def get_supplier_by_type():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/select_supplier/{material_type}", summary="Get alternatives for a specific material type")
+@app.get("/select_supplier/{material_type}", summary="Get supplier selection for a specific material type (test only)")
 def get_supplier_by_type(material_type: str):
     try:
         data = fetch_data(material_type)
-        selection = run_ahp(data)
+        selection = run_ahp(data,[material_type])
         return selection
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/order", summary="Get alternatives for a specific material type")
+@app.post("/order", summary="Execute order specified as a json payload")
 
 async def manage_order(order: dict = Body(...)):
     try:
