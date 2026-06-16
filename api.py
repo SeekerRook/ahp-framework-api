@@ -4,22 +4,20 @@ import requests
 
 
 DATA_URL = os.environ["DATA_URL"]
-# AHP_URL = os.environ["AHP_URL"]
+AHP_URL = os.environ["AHP_URL"]
 
 def fetch_data(material = ""):
     res = requests.get(DATA_URL+"alternatives/"+material)
     return res.json()
 from fastapi import FastAPI, HTTPException
 def ahp(alternatives,preferences):
-    request = {}
-    request["alternatives"] = alternatives
-    request["preferences"] = preferences
-    
-    # #TODO : use actual AHP from microservice
-    # import random
-    # res = random.choice(alternatives)
-    # return res
-    return request
+    payload = {}
+    payload["alternatives"] = alternatives
+    payload["preferences"] = preferences
+    res = requests.post(AHP_URL+"mcdm_api/alternatives",json=payload)
+    selection =  res.json()        
+
+    return selection
 def run_ahp(alternatives,materials,preferences=[]):
     res = {}
     for i,material in enumerate(materials):

@@ -9,5 +9,6 @@ COPY api.py main.py
 
 # DB connection strings — override at runtime via -e or docker-compose env
 ENV DATA_URL=http://localhost:8132/
+ENV AHP_URL=http://localhost:8888/
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
