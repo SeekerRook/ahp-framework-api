@@ -10,20 +10,24 @@ def fetch_data(material = ""):
     res = requests.get(DATA_URL+"alternatives/"+material)
     return res.json()
 from fastapi import FastAPI, HTTPException
-def ahp(alternatives,intent):
-    #TODO : use actual AHP from microservice
-    import random
-    res = random.choice(alternatives)
-    res["intent"] = intent 
-    return res
-def run_ahp(alternatives,materials,intent={}):
+def ahp(alternatives,preferences):
+    request = {}
+    request["alternatives"] = alternatives
+    request["preferences"] = preferences
+    
+    # #TODO : use actual AHP from microservice
+    # import random
+    # res = random.choice(alternatives)
+    # return res
+    return request
+def run_ahp(alternatives,materials,preferences=[]):
     res = {}
-    for material in materials:
-        res[material] = ahp(alternatives[material],intent)
+    for i,material in enumerate(materials):
+        res[material] = ahp(alternatives[material],preferences[i])
     return res
 from fastapi import FastAPI, HTTPException,Body
 
-app = FastAPI(title="Materials API")
+app = FastAPI(title="Framework API")
 @app.get("/data", summary="Get all material alternatives with supplier scores")
 def get_alternatives():
     try:
@@ -45,7 +49,8 @@ def get_alternatives_by_type(material_type: str):
 def get_supplier_by_type():
     try:
         data = fetch_data()
-        selection = run_ahp(data,list(data.keys()))
+        recommended = [0.35,0.15,0.35,0.15]
+        selection = run_ahp(data,list(data.keys()),recommended)
         return selection
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -54,21 +59,45 @@ def get_supplier_by_type():
 def get_supplier_by_type(material_type: str):
     try:
         data = fetch_data(material_type)
-        selection = run_ahp(data,[material_type])
+        recommended = [0.35,0.15,0.35,0.15]
+        selection = run_ahp(data,[material_type],recommended)
         return selection
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/order", summary="Execute order specified as a json payload")
+@app.post("/order/custom", summary="Execute order, with preferences as numerical weights")
 
 async def manage_order(order: dict = Body(...)):
     try:
         materials = order.get("materials", [])
-        intent = order.get("intent")
+        preferences = order.get("preferences")
         data = fetch_data()
            
-        selection = run_ahp(data,materials,intent)
+        selection = run_ahp(data,materials,preferences)
+        return selection
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+@app.post("/order/simple", summary="Execute order, with preferences as natural language descriptors")
+
+async def manage_order(order: dict = Body(...)):
+    try:
+        intent_map = {
+            "balanced":[0.25,0.25,0.25,0.25],
+            "cost":[0.1,0.1,0.7,0.1],
+            "quality":[0.7,0.1,0.1,0.1],
+            "delivery":[0.1,0.7,0.1,0.1],
+            "environment":[0.1,0.1,0.1,0.7],
+            "recommended":[0.35,0.15,0.35,0.15]
+        }
+        materials = order.get("materials", [])
+        preferences = [intent_map[i] for i in order.get("preferences")]
+        data = fetch_data()
+           
+        selection = run_ahp(data,materials,preferences)
         return selection
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
