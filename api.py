@@ -15,13 +15,20 @@ def ahp(alternatives,preferences):
     payload["alternatives"] = alternatives
     payload["preferences"] = preferences
     res = requests.post(AHP_URL+"mcdm_api/alternatives",json=payload)
-    selection =  res.json()        
-
-    return selection
+    selection =  res.json()       
+    #print(selection) 
+    try:
+        return {"MaterialID" : selection["best_alternative"]["materialID"],"supplierID" : selection["best_alternative"]["supplierID"]}
+    except:
+        return {"RESULT":"ERROR","PAYLOAD":payload,"RESPONSE":selection}
 def run_ahp(alternatives,materials,preferences=[]):
     res = {}
     for i,material in enumerate(materials):
-        res[material] = ahp(alternatives[material],preferences[i])
+        try:
+            #selection = lternatives[material][ahp(alternatives[material],preferences[i])]
+            res[material] = ahp(alternatives[material],preferences[i])
+        except:
+            return ahp(alternatives[material],preferences[i])
     return res
 from fastapi import FastAPI, HTTPException,Body
 
