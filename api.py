@@ -1,26 +1,33 @@
 import os
 import requests
+import time
+import logging
 
-
-
+logger = logging.getLogger('uvicorn.error')
+logger.setLevel(logging.DEBUG)
 DATA_URL = os.environ["DATA_URL"]
 AHP_URL = os.environ["AHP_URL"]
 
 def fetch_data(material = ""):
+    start = time.time()
     res = requests.get(DATA_URL+"alternatives/"+material)
+    logger.debug(f"datafetch_time {time.time()-start}")
     return res.json()
 from fastapi import FastAPI, HTTPException
 def ahp(alternatives,preferences):
+    start = time.time()
     payload = {}
     payload["alternatives"] = alternatives
     payload["preferences"] = preferences
     res = requests.post(AHP_URL+"mcdm_api/alternatives",json=payload)
     selection =  res.json()       
-    #print(selection) 
+    #logger.debug(selection) 
+    logger.debug(f"ahp_time {time.time()-start}")
     try:
         return {"MaterialID" : selection["best_alternative"]["materialID"],"supplierID" : selection["best_alternative"]["supplierID"]}
     except:
         return {"RESULT":"ERROR","PAYLOAD":payload,"RESPONSE":selection}
+
 def run_ahp(alternatives,materials,preferences=[]):
     res = {}
     for i,material in enumerate(materials):
@@ -75,12 +82,16 @@ def get_supplier_by_type(material_type: str):
 
 async def manage_order(order: dict = Body(...)):
     try:
+        logger.debug(f"Order-Custom")
+        start = time.time()
         materials = order.get("materials", [])
         preferences = order.get("preferences")
         data = fetch_data()
            
         selection = run_ahp(data,materials,preferences)
         return selection
+        logger.debug(f"Total  {time.time()-start}")
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -90,6 +101,8 @@ async def manage_order(order: dict = Body(...)):
 
 async def manage_order(order: dict = Body(...)):
     try:
+        logger.debug(f"Order-Simple")
+        start = time.time()
         intent_map = {
             "balanced":[0.25,0.25,0.25,0.25],
             "cost":[0.1,0.1,0.7,0.1],
@@ -103,6 +116,8 @@ async def manage_order(order: dict = Body(...)):
         data = fetch_data()
            
         selection = run_ahp(data,materials,preferences)
+        logger.debug(f"Total  {time.time()-start}")
+        
         return selection
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
