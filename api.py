@@ -82,7 +82,7 @@ def run_vikor(alternatives,materials,preferences=[]):
         selection = vikor(dm,w,types=[1,1,-1,-1,1,1,1])
 
 
-        res[material] = int(np.argmax(selection))#{"MaterialID" : selection["best_alternative"]["materialID"],"supplierID" : selection["best_alternative"]["supplierID"]}
+        res[material] = f"{selection}"#{"MaterialID" : selection["best_alternative"]["materialID"],"supplierID" : selection["best_alternative"]["supplierID"]}
 
     logger.debug(f"vikor_time {time.time()-start}")
 
