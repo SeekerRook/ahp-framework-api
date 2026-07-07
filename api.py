@@ -49,42 +49,76 @@ def run_ahp_full(alternatives,materials,preferences=[]):
 
 
     return res
-def vikor(matrix,
-        weights,
-        types,
+# def vikor(matrix,
+#         weights,
+#         types,
 
-        v=0.5):
+#         v=0.5):
 
-    body = VIKOR()
+#     body = VIKOR()
 
 
-    res = body(matrix,weights,types)
+#     res = body(matrix,weights,types)
 
-    return res
-def make_DM(alternatives):
-    result = []
-    for alt in alternatives:
-        r = [alt[f"C{i+1}"] for i in range(7)]
-        result.append(r)
-    return np.array(result)
-def weight_transform(w,kpi_w=[0.55,0.45,1,0.6,0.4,0.5,0.5]):
+#     return res
+# def make_DM(alternatives):
+#     result = []
+#     for alt in alternatives:
+#         r = [alt[f"C{i+1}"] for i in range(7)]
+#         result.append(r)
+#     return np.array(result)
+# def weight_transform(w,kpi_w=[0.55,0.45,1,0.6,0.4,0.5,0.5]):
 
-    return [w[0]*kpi_w[0],w[0]*kpi_w[1],w[1]*kpi_w[2],w[2]*kpi_w[3],w[2]*kpi_w[4],w[3]*kpi_w[5],w[3]*kpi_w[6]]
+#     return [w[0]*kpi_w[0],w[0]*kpi_w[1],w[1]*kpi_w[2],w[2]*kpi_w[3],w[2]*kpi_w[4],w[3]*kpi_w[5],w[3]*kpi_w[6]]
 
+
+# def run_vikor(alternatives,materials,preferences=[]):
+#     start = time.time()
+
+#     res = {}
+#     for i,material in enumerate(materials):
+#         dm = make_DM(alternatives=alternatives[material])
+#         w = weight_transform(preferences[i])
+#         selection = vikor(dm,w,types=[1,1,-1,-1,1,1,1])
+
+
+#         res[material] = f"{selection}"#{"MaterialID" : selection["best_alternative"]["materialID"],"supplierID" : selection["best_alternative"]["supplierID"]}
+
+#     logger.debug(f"vikor_time {time.time()-start}")
+
+#     return res
+
+def vikor(alternatives,preferences):
+    start = time.time()
+    payload = {}
+    payload["alternatives"] = alternatives
+    payload["preferences"] = preferences
+    res = requests.post(AHP_URL+"mcdm_api/vikor_alts",json=payload)
+    selection =  res.json()       
+    #logger.debug(selection) 
+    logger.debug(f"vikor_time {time.time()-start}")
+    return selection
 
 def run_vikor(alternatives,materials,preferences=[]):
-    start = time.time()
-
     res = {}
     for i,material in enumerate(materials):
-        dm = make_DM(alternatives=alternatives[material])
-        w = weight_transform(preferences[i])
-        selection = vikor(dm,w,types=[1,1,-1,-1,1,1,1])
+        selection = vikor(alternatives[material],preferences[i])
+
+        try:
+            #selection = lternatives[material][ahp(alternatives[material],preferences[i])]
+            res[material] = {"MaterialID" : selection["best_alternative"]["materialID"],"supplierID" : selection["best_alternative"]["supplierID"]}
+        except:
+            return {"RESULT":"ERROR","RESPONSE":selection}
+
+    return res
+def run_vikor_full(alternatives,materials,preferences=[]):
+    res = {}
+    for i,material in enumerate(materials):
+        selection = vikor(alternatives[material],preferences[i])
 
 
-        res[material] = f"{selection}"#{"MaterialID" : selection["best_alternative"]["materialID"],"supplierID" : selection["best_alternative"]["supplierID"]}
+        res[material] = selection#{"MaterialID" : selection["best_alternative"]["materialID"],"supplierID" : selection["best_alternative"]["supplierID"]}
 
-    logger.debug(f"vikor_time {time.time()-start}")
 
     return res
 from fastapi import FastAPI, HTTPException,Body
@@ -196,7 +230,6 @@ async def manage_order(order: dict = Body(...)):
         return selection
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 @app.post("/vikor/simple", summary="Execute order, with preferences as natural language descriptors")
 
 async def manage_order(order: dict = Body(...)):
@@ -215,8 +248,8 @@ async def manage_order(order: dict = Body(...)):
         preferences = [intent_map[i] for i in order.get("preferences")]
         data = fetch_data()
            
-        selection = run_vikor(data,materials,preferences)
-        logger.debug(f"Total(VIKOR)  {time.time()-start}")
+        selection = run_vikor_full(data,materials,preferences)
+        logger.debug(f"Total(Vikor)  {time.time()-start}")
         
         return selection
     except Exception as e:
